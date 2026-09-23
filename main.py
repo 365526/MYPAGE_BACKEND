@@ -1,46 +1,37 @@
 import os
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
-app = FastAPI()  # FastAPI 애플리케이션 인스턴스 생성
+app = FastAPI()
 
-# ── CORS 설정 ──────────────────────────────────────────
-# 브라우저는 다른 출처(도메인/포트)로의 요청을 기본 차단한다.
-# 프론트(localhost:5173)에서 백엔드(localhost:8000)를 부르려면 허용이 필요.
 origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(CORSMiddleware, allow_origins=origins,
                    allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-# ── 데이터 모델 (Pydantic v2) ──────────────────────────
-class MemoIn(BaseModel):        # 요청 본문: 클라이언트가 보내는 데이터
-    content: str
-class MemoOut(BaseModel):       # 응답 본문: 서버가 돌려주는 데이터
-    id: int
-    content: str
+PROFILE = {
+    "name": "김소희",
+    "role": "석사과정 · 정보영재트랙",
+    "intro": "파견연구교사로\n2학기 재학 중입니다.",
+    "interests": {
+        "role": "AI 융합 교육",
+        "items": ["인공지능과 교육", "교육 데이터 분석", "교육용 SW 개발"],
+    },
+    "project": {
+        "role": "AI 기반 개발 실습",
+        "desc": "관광 공공데이터를 활용한",
+        "highlight": "여행 계획 프로그램 개발",
+    },
+    "goal": {
+        "role": "연구 준비",
+        "desc": "선행연구 분석을 통한",
+        "highlight": "논문 주제 구체화",
+    },
+}
 
-# ── 인메모리 저장소 ────────────────────────────────────
-memos: list[dict] = []          # 리스트에 저장(서버 재시작 시 사라짐)
-next_id = 1
+@app.get("/")
+def root():
+    return {"message": "자기소개 API입니다. /docs 에서 확인하세요."}
 
-@app.get("/memos", response_model=list[MemoOut])
-def list_memos():
-    return memos                # 전체 메모 목록 반환
-
-@app.post("/memos", response_model=MemoOut)
-def create_memo(memo: MemoIn):
-    global next_id
-    new = {"id": next_id, "content": memo.content}
-    memos.append(new)
-    next_id += 1
-    return new
-
-@app.delete("/memos/{memo_id}")
-def delete_memo(memo_id: int):
-    global memos
-    for m in memos:
-        if m["id"] == memo_id:
-            memos = [x for x in memos if x["id"] != memo_id]
-            return {"ok": True}
-    raise HTTPException(status_code=404, detail="Memo not found")
-
+@app.get("/profile")
+def get_profile():
+    return PROFILE
